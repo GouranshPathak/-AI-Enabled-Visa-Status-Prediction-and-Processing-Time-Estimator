@@ -1,0 +1,21 @@
+# VS Code
+.vscode/
+**/.vscode/
+
+# Python cache
+__pycache__/
+.ipynb_checkpoints/
+
+# Executables & compiled files
+*.exe
+*.class
+
+# Zip files
+*.zip
+
+# Raw data
+data/raw/
+
+# OS files
+.DS_Store
+Thumbs.db
