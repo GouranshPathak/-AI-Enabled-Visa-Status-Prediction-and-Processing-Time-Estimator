@@ -1,21 +1,19 @@
-# VS Code
+# Ignore VS Code and system files
 .vscode/
-**/.vscode/
-
-# Python cache
 __pycache__/
-.ipynb_checkpoints/
-
-# Executables & compiled files
 *.exe
 *.class
 
-# Zip files
+# Ignore large or temporary files
 *.zip
+*.log
 
-# Raw data
-data/raw/
+# Ignore virtual environments
+venv/
+.env/
 
-# OS files
-.DS_Store
-Thumbs.db
+# Ignore model artifacts if needed (optional)
+*.pkl
+
+# Ignore notebook checkpoints
+.ipynb_checkpoints/
