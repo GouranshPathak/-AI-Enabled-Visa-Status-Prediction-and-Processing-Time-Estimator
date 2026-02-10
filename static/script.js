@@ -492,8 +492,109 @@ function updateCharts(prediction, range, formData) {
     updatePeakTravelChart(prediction, formData.country);
 }
 
-// ... updateTrendChart ...
-// ... updateConfidenceChart ...
+
+function updateTrendChart(prediction, labels) {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+
+    // Generate mock projected data around the prediction
+    const dataPoints = labels.map(() => {
+        const variation = (Math.random() * 0.2) - 0.1; // +/- 10% random
+        return Math.round(prediction * (1 + variation));
+    });
+
+    if (trendChartInstance) {
+        trendChartInstance.destroy();
+    }
+
+    trendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Projected Time',
+                data: dataPoints,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#fff',
+                pointBorderColor: '#667eea',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return `${context.parsed.y} days`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    suggestedMin: Math.max(0, prediction - 15),
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+function updateConfidenceChart(prediction, range) {
+    const ctx = document.getElementById('confidenceChart').getContext('2d');
+
+    const labels = [
+        `${range.min}-${prediction}`,
+        `${prediction} (Likely)`,
+        `${prediction}-${range.max}`
+    ];
+
+    const dataPoints = [20, 60, 20];
+
+    if (confidenceChartInstance) {
+        confidenceChartInstance.destroy();
+    }
+
+    confidenceChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Probability',
+                data: dataPoints,
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.4)',
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(102, 126, 234, 0.4)'
+                ],
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { display: false },
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 11 } }
+                }
+            }
+        }
+    });
+}
 
 let peakTravelChartInstance = null;
 
