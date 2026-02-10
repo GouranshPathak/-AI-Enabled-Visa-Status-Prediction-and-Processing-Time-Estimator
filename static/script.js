@@ -376,7 +376,7 @@ function displayResult(prediction, formData) {
     animateValue(resultValueObj, 0, roundedPrediction, CONFIG.ANIMATION_DURATION);
 
     // 4. Update Visualizations
-    updateCharts(roundedPrediction, range);
+    updateCharts(roundedPrediction, range, formData);
 }
 
 function analyzeRisk(data, prediction) {
@@ -476,7 +476,7 @@ function displayError(message) {
 // Chart.js Visualizations
 // ===================================
 
-function updateCharts(prediction, range) {
+function updateCharts(prediction, range, formData) {
     if (typeof Chart === 'undefined') return;
 
     // Generate next 6 months labels
@@ -489,123 +489,38 @@ function updateCharts(prediction, range) {
 
     updateTrendChart(prediction, monthNames);
     updateConfidenceChart(prediction, range);
-    updatePeakTravelChart(prediction);
+    updatePeakTravelChart(prediction, formData.country);
 }
 
-function updateTrendChart(prediction, labels) {
-    const ctx = document.getElementById('trendChart').getContext('2d');
-
-    // Generate mock projected data around the prediction
-    const dataPoints = labels.map(() => {
-        const variation = (Math.random() * 0.2) - 0.1; // +/- 10% random
-        return Math.round(prediction * (1 + variation));
-    });
-
-    if (trendChartInstance) {
-        trendChartInstance.destroy();
-    }
-
-    trendChartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Projected Time',
-                data: dataPoints,
-                borderColor: '#667eea',
-                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#667eea',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            return `${context.parsed.y} days`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    suggestedMin: Math.max(0, prediction - 15),
-                    grid: { color: '#f1f5f9' }
-                },
-                x: {
-                    grid: { display: false }
-                }
-            }
-        }
-    });
-}
-
-function updateConfidenceChart(prediction, range) {
-    const ctx = document.getElementById('confidenceChart').getContext('2d');
-
-    const labels = [
-        `${range.min}-${prediction}`,
-        `${prediction} (Likely)`,
-        `${prediction}-${range.max}`
-    ];
-
-    const dataPoints = [20, 60, 20];
-
-    if (confidenceChartInstance) {
-        confidenceChartInstance.destroy();
-    }
-
-    confidenceChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Probability',
-                data: dataPoints,
-                backgroundColor: [
-                    'rgba(102, 126, 234, 0.4)',
-                    'rgba(102, 126, 234, 0.8)',
-                    'rgba(102, 126, 234, 0.4)'
-                ],
-                borderRadius: 6,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { display: false },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 11 } }
-                }
-            }
-        }
-    });
-}
+// ... updateTrendChart ...
+// ... updateConfidenceChart ...
 
 let peakTravelChartInstance = null;
 
-function updatePeakTravelChart(prediction) {
+const REGION_PATTERNS = {
+    'north_america': [0.9, 0.9, 1.0, 1.0, 1.2, 1.4, 1.5, 1.3, 1.0, 0.9, 1.1, 1.3], // Summer & Xmas peak
+    'europe': [0.8, 0.9, 1.0, 1.1, 1.3, 1.5, 1.5, 1.4, 1.1, 0.9, 0.8, 1.2], // Summer peak
+    'asia': [1.2, 1.1, 1.0, 1.0, 1.1, 1.2, 1.2, 1.1, 1.0, 1.1, 1.0, 1.1], // LNY & Summer
+    'australia': [1.4, 1.3, 1.1, 1.0, 0.9, 0.8, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5], // Southern Summer (Dec-Feb)
+    'default': [0.9, 0.9, 1.0, 1.0, 1.2, 1.3, 1.3, 1.2, 1.0, 0.9, 1.1, 1.2]
+};
+
+function getRegionFactors(country) {
+    const c = country.toLowerCase();
+    if (['usa', 'united states', 'canada', 'mexico'].includes(c)) return REGION_PATTERNS['north_america'];
+    if (['uk', 'united kingdom', 'france', 'germany', 'italy', 'spain', 'ireland'].includes(c)) return REGION_PATTERNS['europe'];
+    if (['india', 'china', 'japan', 'singapore', 'thailand', 'vietnam'].includes(c)) return REGION_PATTERNS['asia'];
+    if (['australia', 'new zealand'].includes(c)) return REGION_PATTERNS['australia'];
+    return REGION_PATTERNS['default'];
+}
+
+function updatePeakTravelChart(prediction, country) {
     const ctx = document.getElementById('peakTravelChart').getContext('2d');
 
-    // Mock data: High season vs Low season
-    // Using simple month names for a full year overview or next 6 months
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    // Create seasonal pattern (Peak in Summer/Holiday seasons)
-    const seasonalFactors = [0.9, 0.9, 1.0, 1.0, 1.2, 1.3, 1.3, 1.2, 1.0, 0.9, 1.1, 1.2];
+    // Get dynamic factors
+    const seasonalFactors = getRegionFactors(country || 'default');
     const dataPoints = seasonalFactors.map(factor => Math.round(prediction * factor));
 
     if (peakTravelChartInstance) {
